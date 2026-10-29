@@ -34,8 +34,24 @@ public class ChatServer {
                                 break;
                             }
 
-                            // 스레드 이름과 읽은 값 출력하기
-                            System.out.println(Thread.currentThread().getName() + " : " + val);
+                            // "QUIT" 이면 반복 종료
+                            if (val.equals("QUIT")) {
+                                System.out.println("연결을 종료합니다.");
+                                break;
+                            }
+
+                            // "MSG " 로 시작한다면 메시지 본문만 추출하여 출력
+                            if (val.startsWith("MSG ")) {
+                                String line = val.substring(4);
+                                if (!line.isEmpty()) {
+                                    System.out.println(val.substring(4));
+                                    continue;
+                                };
+                                continue;
+                            }
+
+                            // 그 외의 명령이라면 "알 수 없는 명령 출력"
+                            System.out.println("알 수 없는 명령");
                         }
                         
                     } catch (IOException e) {
