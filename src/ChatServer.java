@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -8,14 +9,19 @@ public class ChatServer {
             System.out.println("서버 시작");
 
             while (true) {
-                // accept 호출
-                Socket socket = server.accept();
+                try (Socket socket = server.accept()) {
+                    System.out.println("연결 성공!");
 
-                // 연결 성공 출력
-                System.out.println("연결 성공!");
+                    // Socket 으로부터 InputStream 얻기
+                    InputStream input = socket.getInputStream();
+                    
+                    // InputStream 에서 데이터 1바이트 읽기
+                    int val = input.read();
+                    
+                    // 읽은 값 출력하기
+                    System.out.println(val);
 
-                // Socket 닫기
-                socket.close();
+                }
             }
         }
     }
