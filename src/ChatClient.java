@@ -11,6 +11,8 @@ public class ChatClient {
             System.out.println("Enter를 누르면 데이터를 전송합니다.");
             System.in.read();
             output.write(65);
+            output.write(66);
+            output.write(67);
 
             System.out.println("데이터 전송 완료");
         }

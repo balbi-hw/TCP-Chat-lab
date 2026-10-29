@@ -18,18 +18,24 @@ public class ChatServer {
                         // Socket 으로부터 InputStream 얻기
                         InputStream input = socket.getInputStream();
                         
-                        // InputStream 에서 데이터 1바이트 읽기
-                        int val = input.read();
+                        while (true) {
+                            // InputStream 에서 데이터 1바이트 읽기
+                            int val = input.read();
+
+                            if (val == -1) {
+                                break;
+                            }
+                            
+                            // 스레드 이름과 읽은 값 출력하기
+                            System.out.println(Thread.currentThread().getName() + " : " + val);
+                        }
                         
-                        // 스레드 이름과 읽은 값 출력하기
-                        System.out.println(Thread.currentThread().getName() + " : " + val);
                     } catch (IOException e) {
                         System.out.println("읽기 오류: " + e.getMessage());
                     }
                 });
 
                 worker.start();
-
                 
             }
         }
