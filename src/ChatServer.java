@@ -5,8 +5,14 @@ import java.net.Socket;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatServer {
+
+    private static final List<Socket> clients = 
+            new CopyOnWriteArrayList<>();
+
     public static void main(String[] args) throws IOException {
         try (ServerSocket server = new ServerSocket(5000)) {
             System.out.println("서버 시작");
@@ -14,6 +20,10 @@ public class ChatServer {
             while (true) {
                 Socket socket = server.accept();
                 System.out.println("연결 성공!");
+
+                clients.add(socket);
+
+                System.out.println("접속자 수: " + clients.size());
 
                 Thread worker = new Thread(() -> {
                     try (socket) {
@@ -56,11 +66,13 @@ public class ChatServer {
                         
                     } catch (IOException e) {
                         System.out.println("읽기 오류: " + e.getMessage());
+                    } finally {
+                        clients.remove(socket);
+    
+                        System.out.println("접속자 수: " + clients.size());
                     }
                 });
-
                 worker.start();
-                
             }
         }
     }
