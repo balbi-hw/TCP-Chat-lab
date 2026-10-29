@@ -15,6 +15,8 @@ public class ChatServer {
             new CopyOnWriteArrayList<>();
 
     private static void broadcast(Socket sender, String message) {
+        int recipientIndex = 0;
+
         for (Socket client : clients) {
 
             // sender 와 client 가 같은 Socket 이면 건너뛰기
@@ -22,8 +24,18 @@ public class ChatServer {
                 continue;
             };
 
-            // client.getOutputStream() 으로 출력 스트림 얻기
+            recipientIndex++;
+
             try {
+                System.out.println(
+                    recipientIndex + "빈 수신자 전송 시작"
+                );
+
+                if (recipientIndex == 2) {
+                    Thread.sleep(3000);
+                };
+
+                // client.getOutputStream() 으로 출력 스트림 얻기
                 OutputStream output = client.getOutputStream();
                     
                 // "MSG " + message + "\n" 을 UTF-8 바이트로 변환해 전송
@@ -31,9 +43,17 @@ public class ChatServer {
                 output.write(
                     data.getBytes(StandardCharsets.UTF_8)
                 );
-            // IOException 처리
+                // IOException 처리
+                // } catch (IOException e) {
+                //     System.out.println("출력 오류: " + e.getMessage());
+
+                System.out.println("전송 완료");
+
             } catch (IOException e) {
-                System.out.println("출력 오류: " + e.getMessage());
+                System.out.println("전송 오류: " + e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
             }
         }
     }
