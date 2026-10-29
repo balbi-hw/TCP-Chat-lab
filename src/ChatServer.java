@@ -2,6 +2,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class ChatServer {
     public static void main(String[] args) throws IOException {
@@ -14,18 +17,23 @@ public class ChatServer {
 
                 Thread worker = new Thread(() -> {
                     try (socket) {
-                        
-                        // Socket 으로부터 InputStream 얻기
-                        InputStream input = socket.getInputStream();
+
+                        BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(
+                            socket.getInputStream(),
+                            StandardCharsets.UTF_8
+                            )
+                        );
                         
                         while (true) {
-                            // InputStream 에서 데이터 1바이트 읽기
-                            int val = input.read();
 
-                            if (val == -1) {
+                            // readLine() 으로 문자열 읽기
+                            String val = reader.readLine();
+
+                            if (val == null) {
                                 break;
                             }
-                            
+
                             // 스레드 이름과 읽은 값 출력하기
                             System.out.println(Thread.currentThread().getName() + " : " + val);
                         }
