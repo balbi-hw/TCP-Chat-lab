@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -12,6 +13,30 @@ public class ChatServer {
 
     private static final List<Socket> clients = 
             new CopyOnWriteArrayList<>();
+
+    private static void broadcast(Socket sender, String message) {
+        for (Socket client : clients) {
+
+            // sender 와 client 가 같은 Socket 이면 건너뛰기
+            if (sender == client) {
+                continue;
+            };
+
+            // client.getOutputStream() 으로 출력 스트림 얻기
+            try {
+                OutputStream output = client.getOutputStream();
+                    
+                // "MSG " + message + "\n" 을 UTF-8 바이트로 변환해 전송
+                String data = "MSG " + message + "\n";            
+                output.write(
+                    data.getBytes(StandardCharsets.UTF_8)
+                );
+            // IOException 처리
+            } catch (IOException e) {
+                System.out.println("출력 오류: " + e.getMessage());
+            }
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         try (ServerSocket server = new ServerSocket(5000)) {
@@ -54,9 +79,10 @@ public class ChatServer {
                             if (val.startsWith("MSG ")) {
                                 String line = val.substring(4);
                                 if (!line.isEmpty()) {
-                                    System.out.println(val.substring(4));
+                                    broadcast(socket, line);
                                     continue;
                                 };
+
                                 continue;
                             }
 

@@ -7,13 +7,11 @@ public class ChatClient {
     public static void main(String[] args) throws IOException {
         try (Socket socket = new Socket("127.0.0.1", 5000)) {
             System.out.println("서버 연결 성공");
-            System.out.println("Enter를 누르면 종료합니다.");
 
-            System.in.read();
+            OutputStream output = socket.getOutputStream();
 
-            socket.getOutputStream().write(
-                "QUIT\n".getBytes(StandardCharsets.UTF_8)
-            );
+            output.write("MSG 안녕하세요\n".getBytes(StandardCharsets.UTF_8));
+            output.write("QUIT\n".getBytes(StandardCharsets.UTF_8));
         }
     }
 }
