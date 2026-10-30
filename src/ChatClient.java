@@ -10,7 +10,7 @@ public class ChatClient {
 
             OutputStream output = socket.getOutputStream();
 
-            output.write("MSG 안녕하세요\n".getBytes(StandardCharsets.UTF_8));
+            output.write("MSG __FAIL_WRITER__\n".getBytes(StandardCharsets.UTF_8));
             output.write("QUIT\n".getBytes(StandardCharsets.UTF_8));
         }
     }

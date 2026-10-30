@@ -22,17 +22,21 @@ public class ClientSession {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    private final Object stateLock = new Object();
+
     public boolean enqueue(String message) {
         // TODO 1:
         // outgoing.offer()로 메시지 추가
         // 성공 여부 반환
         // System.out.println("메시지 추가 여부: " + outgoing.offer(message));
 
-        if (closed.get()) {
-            return false;
-        }
+        synchronized (stateLock) {
+            if (closed.get()) {
+                return false;
+            }
 
-        return outgoing.offer(message);
+            return outgoing.offer(message);
+        }
     }
 
     public void startWriter() {
@@ -44,9 +48,14 @@ public class ClientSession {
                     // TODO 2:
                     // outgoing.take()로 메시지 꺼내기
                     String val = outgoing.take();
+
+                    // 실험용 실패
+                    if (val.equals("__FAIL_WRITER__")) {
+                        throw new IOException("테스트용 실패");
+                    };
                     
                     // 실험용 지연
-                    Thread.sleep(1000);
+                    // Thread.sleep(1000);
 
                     String line = "MSG " + val + "\n";
 
@@ -64,7 +73,9 @@ public class ClientSession {
             } catch (IOException e) {
                 System.out.println("Writer 오류: " + e.getMessage());
             } finally {
-                System.out.println("Writer 스레드 종료");
+                System.out.println("Writer 스레드 종료: Session 정리 요청");
+
+                close();
             }
         });
 
@@ -72,15 +83,21 @@ public class ClientSession {
     }
 
     public void stopWriter() {
-        writerThread.interrupt();
+        Thread t = writerThread;
+
+        if (t != null && t != Thread.currentThread()) {
+            t.interrupt();
+        }
     }
 
     public void close() {
 
-        if (!closed.compareAndSet(false, true)) {
-            return;
+        synchronized (stateLock) {
+            if (!closed.compareAndSet(false, true)) {
+                return;
+            }
+    
         }
-
         System.out.println("실제 종료 처리 시작");
     
         try (this.socket) {
