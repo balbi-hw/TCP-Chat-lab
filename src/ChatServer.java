@@ -14,6 +14,8 @@ public class ChatServer {
     private static final List<ClientSession> clients = 
             new CopyOnWriteArrayList<>();
 
+    private static final Object registryLock = new Object();
+
     private static void broadcast(ClientSession sender, String message) {
 
         for (ClientSession client : clients) {
@@ -56,15 +58,28 @@ public class ChatServer {
                 System.out.println("연결 성공!");
 
                 ClientSession session = new ClientSession(socket,
-                    closedSession -> clients.remove(closedSession)
+                    closedSession -> {
+                        synchronized (registryLock) {
+                            clients.remove(closedSession);
+                        }
+                    }
                 );
 
-                clients.add(session);
+                boolean started;
 
-                if (!session.startWriter()) {
+                synchronized (registryLock) {
+                    started = session.startWriter();
+
+                    if (started) {
+                        clients.add(session);
+                    }                    
+                }
+
+                if (!started) {
                     session.close();
                     continue;
                 }
+
 
                 Thread worker = new Thread(() -> {
                     try {
