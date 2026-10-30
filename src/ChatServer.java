@@ -11,49 +11,22 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatServer {
 
-    private static final List<Socket> clients = 
+    private static final List<ClientSession> clients = 
             new CopyOnWriteArrayList<>();
 
-    private static void broadcast(Socket sender, String message) {
-        int recipientIndex = 0;
+    private static void broadcast(ClientSession sender, String message) {
 
-        for (Socket client : clients) {
+        for (ClientSession client : clients) {
 
-            // sender 와 client 가 같은 Socket 이면 건너뛰기
-            if (sender == client) {
-                continue;
-            };
+            // 송신자 제외
+            if (client == sender) {
+                continue;                
+            }
 
-            recipientIndex++;
+            boolean result = client.enqueue(message);
 
-            try {
-                System.out.println(
-                    recipientIndex + "빈 수신자 전송 시작"
-                );
-
-                if (recipientIndex == 2) {
-                    Thread.sleep(3000);
-                };
-
-                // client.getOutputStream() 으로 출력 스트림 얻기
-                OutputStream output = client.getOutputStream();
-                    
-                // "MSG " + message + "\n" 을 UTF-8 바이트로 변환해 전송
-                String data = "MSG " + message + "\n";            
-                output.write(
-                    data.getBytes(StandardCharsets.UTF_8)
-                );
-                // IOException 처리
-                // } catch (IOException e) {
-                //     System.out.println("출력 오류: " + e.getMessage());
-
-                System.out.println("전송 완료");
-
-            } catch (IOException e) {
-                System.out.println("전송 오류: " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
+            if (!result) {
+                System.out.println("Queue 가 가득 찼습니다.");
             }
         }
     }
@@ -66,9 +39,13 @@ public class ChatServer {
                 Socket socket = server.accept();
                 System.out.println("연결 성공!");
 
-                clients.add(socket);
+                ClientSession session = new ClientSession(socket);
+
+                clients.add(session);
 
                 System.out.println("접속자 수: " + clients.size());
+
+                session.startWriter();
 
                 Thread worker = new Thread(() -> {
                     try (socket) {
@@ -99,7 +76,7 @@ public class ChatServer {
                             if (val.startsWith("MSG ")) {
                                 String line = val.substring(4);
                                 if (!line.isEmpty()) {
-                                    broadcast(socket, line);
+                                    broadcast(session, line);
                                     continue;
                                 };
 
@@ -113,7 +90,8 @@ public class ChatServer {
                     } catch (IOException e) {
                         System.out.println("읽기 오류: " + e.getMessage());
                     } finally {
-                        clients.remove(socket);
+                        clients.remove(session);
+                        session.stopWriter();
     
                         System.out.println("접속자 수: " + clients.size());
                     }

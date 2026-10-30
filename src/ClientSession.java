@@ -35,7 +35,9 @@ public class ClientSession {
                 while (true) {
                     // TODO 2:
                     // outgoing.take()로 메시지 꺼내기
-                    String line = outgoing.take();
+                    String val = outgoing.take();
+
+                    String line = "MSG " + val + "\n";
 
                     // TODO 3:
                     // UTF-8 바이트 배열로 변환하기
