@@ -56,47 +56,53 @@ public class ClientSession {
         }
     }
 
-    public void startWriter() {
-        writerThread = new Thread(() -> {
-            try {
-                OutputStream output = socket.getOutputStream();
-
-                while (true) {
-                    // TODO 2:
-                    // outgoing.take()로 메시지 꺼내기
-                    String val = outgoing.take();
-
-                    // 실험용 실패
-                    // if (val.equals("__FAIL_WRITER__")) {
-                    //     throw new IOException("테스트용 실패");
-                    // };
-                    
-                    // 실험용 지연
-                    // Thread.sleep(1000);
-
-                    String line = "MSG " + val + "\n";
-
-                    // TODO 3:
-                    // UTF-8 바이트 배열로 변환하기
-                    byte[] data = line.getBytes(StandardCharsets.UTF_8);
-
-                    // TODO 4:
-                    // output.write()로 전송하기
-                    output.write(data);
-                }
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (IOException e) {
-                System.out.println("Writer 오류: " + e.getMessage());
-            } finally {
-                System.out.println("Writer 스레드 종료: Session 정리 요청");
-
-                close();
+    public boolean startWriter() {
+        
+        synchronized (stateLock) {
+            if (closed.get()) {
+                return false;
             }
-        });
+            
+            if (writerThread != null) {
+                return false;                
+            }
+            
+            writerThread = new Thread(() -> {
+                try {
+                    OutputStream output = socket.getOutputStream();
+    
+                    while (true) {
+                        // TODO 2:
+                        // outgoing.take()로 메시지 꺼내기
+                        String val = outgoing.take();
+    
+                        String line = "MSG " + val + "\n";
+    
+                        // TODO 3:
+                        // UTF-8 바이트 배열로 변환하기
+                        byte[] data = line.getBytes(StandardCharsets.UTF_8);
+    
+                        // TODO 4:
+                        // output.write()로 전송하기
+                        output.write(data);
+                    }
+    
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (IOException e) {
+                    System.out.println("Writer 오류: " + e.getMessage());
+                } finally {
+                    System.out.println("Writer 스레드 종료: Session 정리 요청");
+    
+                    close();
+                }
+            });
 
-        writerThread.start();
+            writerThread.start();
+    
+            return true;
+        }
+
     }
 
     public void stopWriter() {

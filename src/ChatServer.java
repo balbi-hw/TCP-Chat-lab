@@ -57,9 +57,10 @@ public class ChatServer {
 
                 clients.add(session);
 
-                // System.out.println("접속자 수: " + clients.size());
-
-                session.startWriter();
+                if (!session.startWriter()) {
+                    session.close();
+                    continue;
+                }
 
                 Thread worker = new Thread(() -> {
                     try {
@@ -106,7 +107,6 @@ public class ChatServer {
                     } finally {
                         session.close();
     
-                        // System.out.println("접속자 수: " + clients.size());
                     }
                 });
                 worker.start();
