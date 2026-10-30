@@ -54,4 +54,27 @@ public class SessionStateLab {
             }
         }
     }
+
+    public State getState() {
+        synchronized (lock) {
+            return state;
+        }
+    }
+
+    // public static void main(String[] args) {
+
+    //     SessionStateLab session = new SessionStateLab();
+
+    //     System.out.println(session.getState());
+
+    //     System.out.println(session.start());
+    //     System.out.println(session.getState());
+
+    //     System.out.println(session.beginClose());
+    //     System.out.println(session.getState());
+
+    //     session.finishClose();
+    //     System.out.println(session.getState());
+
+    // }
 }

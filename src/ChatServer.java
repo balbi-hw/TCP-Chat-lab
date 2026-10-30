@@ -39,6 +39,10 @@ public class ChatServer {
                 case CLOSED -> {
                     System.out.println("세션이 닫혀있습니다.");    
                 }
+
+                case NOT_READY -> {
+                    System.out.println("아직 준비되지 않은 session 입니다.");
+                }
             }
         }
     }

@@ -25,13 +25,23 @@ public class ClientSession {
         this.onClosed = onClosed;
     }
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+    // private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private enum State {
+        CREATED,
+        ACTIVE,
+        CLOSING,
+        CLOSED
+    }
+
+    private State state = State.CREATED;
 
     private final Object stateLock = new Object();
 
     public enum EnqueueResult {
         ACCEPTED,
         FULL,
+        NOT_READY,
         CLOSED,
     }
 
@@ -44,7 +54,12 @@ public class ClientSession {
         // System.out.println("메시지 추가 여부: " + outgoing.offer(message));
 
         synchronized (stateLock) {
-            if (closed.get()) {
+
+            if (state == State.CREATED) {
+                return EnqueueResult.NOT_READY;
+            }
+
+            if (state == State.CLOSING || state == State.CLOSED) {
                 return EnqueueResult.CLOSED;
             }
 
@@ -59,12 +74,9 @@ public class ClientSession {
     public boolean startWriter() {
         
         synchronized (stateLock) {
-            if (closed.get()) {
+            // CREATED 가 아니면 실패
+            if (state != State.CREATED) {
                 return false;
-            }
-            
-            if (writerThread != null) {
-                return false;                
             }
             
             writerThread = new Thread(() -> {
@@ -72,18 +84,12 @@ public class ClientSession {
                     OutputStream output = socket.getOutputStream();
     
                     while (true) {
-                        // TODO 2:
-                        // outgoing.take()로 메시지 꺼내기
                         String val = outgoing.take();
     
                         String line = "MSG " + val + "\n";
     
-                        // TODO 3:
-                        // UTF-8 바이트 배열로 변환하기
                         byte[] data = line.getBytes(StandardCharsets.UTF_8);
     
-                        // TODO 4:
-                        // output.write()로 전송하기
                         output.write(data);
                     }
     
@@ -100,6 +106,9 @@ public class ClientSession {
 
             writerThread.start();
     
+            // state ACTIVE 로 변경
+            state = State.ACTIVE;
+
             return true;
         }
 
@@ -116,23 +125,29 @@ public class ClientSession {
     public void close() {
 
         synchronized (stateLock) {
-            if (!closed.compareAndSet(false, true)) {
+            if (state == State.CLOSED || state == State.CLOSING) {
                 return;
             }
-    
+
+            state = State.CLOSING;
         }
+
         System.out.println("실제 종료 처리 시작");
     
         try {
-            socket.close();
-        } catch (IOException e) {
-            System.out.println("에러 발생: " + e.getMessage());
-        } finally {
             try {
-                stopWriter();
+                socket.close();
+            } catch (IOException e) {
+                System.out.println("에러 발생: " + e.getMessage());
             } finally {
-                onClosed.accept(this);
+                stopWriter();
+            } 
+        } finally {
+            synchronized (stateLock) {
+                state = State.CLOSED;
             }
+
+            onClosed.accept(this);
         }
     }
 }
