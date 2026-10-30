@@ -27,6 +27,11 @@ public class ChatServer {
 
             if (!result) {
                 System.out.println("Queue 가 가득 찼습니다.");
+
+                // 큐가 가득 차면 해당 세션 리스트에서 제거
+                clients.remove(client);
+                // 해당 세션 자원 반환
+                client.close();
             }
         }
     }
@@ -48,7 +53,7 @@ public class ChatServer {
                 session.startWriter();
 
                 Thread worker = new Thread(() -> {
-                    try (socket) {
+                    try {
 
                         BufferedReader reader = new BufferedReader(
                             new InputStreamReader(
@@ -91,7 +96,8 @@ public class ChatServer {
                         System.out.println("읽기 오류: " + e.getMessage());
                     } finally {
                         clients.remove(session);
-                        session.stopWriter();
+
+                        session.close();
     
                         System.out.println("접속자 수: " + clients.size());
                     }

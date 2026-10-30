@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientSession {
 
@@ -19,11 +20,18 @@ public class ClientSession {
         this.socket = socket;
     }
 
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+
     public boolean enqueue(String message) {
         // TODO 1:
         // outgoing.offer()로 메시지 추가
         // 성공 여부 반환
         // System.out.println("메시지 추가 여부: " + outgoing.offer(message));
+
+        if (closed.get()) {
+            return false;
+        }
+
         return outgoing.offer(message);
     }
 
@@ -36,6 +44,9 @@ public class ClientSession {
                     // TODO 2:
                     // outgoing.take()로 메시지 꺼내기
                     String val = outgoing.take();
+                    
+                    // 실험용 지연
+                    Thread.sleep(1000);
 
                     String line = "MSG " + val + "\n";
 
@@ -52,6 +63,8 @@ public class ClientSession {
                 Thread.currentThread().interrupt();
             } catch (IOException e) {
                 System.out.println("Writer 오류: " + e.getMessage());
+            } finally {
+                System.out.println("Writer 스레드 종료");
             }
         });
 
@@ -60,5 +73,22 @@ public class ClientSession {
 
     public void stopWriter() {
         writerThread.interrupt();
+    }
+
+    public void close() {
+
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+
+        System.out.println("실제 종료 처리 시작");
+    
+        try (this.socket) {
+            this.socket.close();
+        } catch (IOException e) {
+            System.out.println("에러 발생: " + e.getMessage());
+        }
+
+        this.stopWriter();
     }
 }
