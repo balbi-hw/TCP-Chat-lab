@@ -23,15 +23,22 @@ public class ChatServer {
                 continue;                
             }
 
-            boolean result = client.enqueue(message);
+            ClientSession.EnqueueResult result = client.enqueue(message);
 
-            if (!result) {
-                System.out.println("Queue 가 가득 찼습니다.");
-
-                // 큐가 가득 차면 해당 세션 리스트에서 제거
-                clients.remove(client);
-                // 해당 세션 자원 반환
-                client.close();
+            switch (result) {
+                case ACCEPTED -> {
+                    System.out.println("메시지가 Queue에 전송되었습니다.");
+                }
+                
+                case FULL -> {
+                    System.out.println("Queue 가 가득 찼습니다.");
+                    // 해당 세션 자원 반환
+                    client.close();
+                }
+                    
+                case CLOSED -> {
+                    System.out.println("세션이 닫혀있습니다.");    
+                }
             }
         }
     }
@@ -44,11 +51,13 @@ public class ChatServer {
                 Socket socket = server.accept();
                 System.out.println("연결 성공!");
 
-                ClientSession session = new ClientSession(socket);
+                ClientSession session = new ClientSession(socket,
+                    closedSession -> clients.remove(closedSession)
+                );
 
                 clients.add(session);
 
-                System.out.println("접속자 수: " + clients.size());
+                // System.out.println("접속자 수: " + clients.size());
 
                 session.startWriter();
 
@@ -95,11 +104,9 @@ public class ChatServer {
                     } catch (IOException e) {
                         System.out.println("읽기 오류: " + e.getMessage());
                     } finally {
-                        clients.remove(session);
-
                         session.close();
     
-                        System.out.println("접속자 수: " + clients.size());
+                        // System.out.println("접속자 수: " + clients.size());
                     }
                 });
                 worker.start();

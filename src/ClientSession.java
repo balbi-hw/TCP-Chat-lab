@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class ClientSession {
 
@@ -16,15 +17,27 @@ public class ClientSession {
 
     private Thread writerThread;
 
-    public ClientSession(Socket socket) {
+    public ClientSession(
+        Socket socket,
+        Consumer<ClientSession> onClosed
+    ) {
         this.socket = socket;
+        this.onClosed = onClosed;
     }
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final Object stateLock = new Object();
 
-    public boolean enqueue(String message) {
+    public enum EnqueueResult {
+        ACCEPTED,
+        FULL,
+        CLOSED,
+    }
+
+    private final Consumer<ClientSession> onClosed;
+
+    public EnqueueResult enqueue(String message) {
         // TODO 1:
         // outgoing.offer()로 메시지 추가
         // 성공 여부 반환
@@ -32,10 +45,14 @@ public class ClientSession {
 
         synchronized (stateLock) {
             if (closed.get()) {
-                return false;
+                return EnqueueResult.CLOSED;
             }
 
-            return outgoing.offer(message);
+            if (!outgoing.offer(message)) {
+                return EnqueueResult.FULL;
+            }
+
+            return EnqueueResult.ACCEPTED;
         }
     }
 
@@ -50,9 +67,9 @@ public class ClientSession {
                     String val = outgoing.take();
 
                     // 실험용 실패
-                    if (val.equals("__FAIL_WRITER__")) {
-                        throw new IOException("테스트용 실패");
-                    };
+                    // if (val.equals("__FAIL_WRITER__")) {
+                    //     throw new IOException("테스트용 실패");
+                    // };
                     
                     // 실험용 지연
                     // Thread.sleep(1000);
@@ -100,12 +117,16 @@ public class ClientSession {
         }
         System.out.println("실제 종료 처리 시작");
     
-        try (this.socket) {
-            this.socket.close();
+        try {
+            socket.close();
         } catch (IOException e) {
             System.out.println("에러 발생: " + e.getMessage());
+        } finally {
+            try {
+                stopWriter();
+            } finally {
+                onClosed.accept(this);
+            }
         }
-
-        this.stopWriter();
     }
 }
