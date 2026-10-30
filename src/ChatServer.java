@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -16,36 +17,46 @@ public class ChatServer {
 
     private static final Object registryLock = new Object();
 
+    private static final Object broadcastLock = new Object();
+
     private static void broadcast(ClientSession sender, String message) {
 
-        for (ClientSession client : clients) {
+        List<ClientSession> toClose = new ArrayList<>();
 
-            // 송신자 제외
-            if (client == sender) {
-                continue;                
-            }
-
-            ClientSession.EnqueueResult result = client.enqueue(message);
-
-            switch (result) {
-                case ACCEPTED -> {
-                    System.out.println("메시지가 Queue에 전송되었습니다.");
+        synchronized (broadcastLock) {
+            for (ClientSession client : clients) {
+    
+                // 송신자 제외
+                if (client == sender) {
+                    continue;                
                 }
-                
-                case FULL -> {
-                    System.out.println("Queue 가 가득 찼습니다.");
-                    // 해당 세션 자원 반환
-                    client.close();
-                }
+    
+                ClientSession.EnqueueResult result = client.enqueue(message);
+    
+                switch (result) {
+                    case ACCEPTED -> {
+                        System.out.println("메시지가 Queue에 전송되었습니다.");
+                    }
                     
-                case CLOSED -> {
-                    System.out.println("세션이 닫혀있습니다.");    
-                }
-
-                case NOT_READY -> {
-                    System.out.println("아직 준비되지 않은 session 입니다.");
+                    case FULL -> {
+                        System.out.println("Queue 가 가득 찼습니다.");
+                        // 해당 세션 자원 반환
+                        toClose.add(client);
+                    }
+                        
+                    case CLOSED -> {
+                        System.out.println("세션이 닫혀있습니다.");    
+                    }
+    
+                    case NOT_READY -> {
+                        System.out.println("아직 준비되지 않은 session 입니다.");
+                    }
                 }
             }
+        }
+
+        for (ClientSession client : toClose) {
+            client.close();
         }
     }
 
