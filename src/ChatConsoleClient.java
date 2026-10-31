@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class ChatConsoleClient {
@@ -27,13 +28,10 @@ public class ChatConsoleClient {
                             );
 
                     while (true) {
-                        // TODO 1:
-                        // 서버에서 한 줄 읽기
                         String line = serverReader.readLine();
 
-                        // TODO 2:
-                        // null이면 반복 종료
-                        // MSG 로 시작하면 본문 출력
+                        System.out.println("[수신 원문] " + line);
+
                         if (line == null) {
                             break;
                         }
@@ -43,10 +41,7 @@ public class ChatConsoleClient {
                             
                             if (!output.isEmpty()) {
                                 System.out.println("메시지 수신: " + output);
-                                continue;
                             }
-
-                            continue;
                         }
                     }
 
@@ -63,11 +58,20 @@ public class ChatConsoleClient {
 
             receiver.start();
 
+            // BufferedReader console =
+            //         new BufferedReader(
+            //             new InputStreamReader(
+            //                 System.in,
+            //                 StandardCharsets.UTF_8
+            //             )
+            //         );
+
+            // 콘솔 인코딩 문제 해결을 위한 임시 코드 - 원인 파악 중
             BufferedReader console =
                     new BufferedReader(
                         new InputStreamReader(
                             System.in,
-                            StandardCharsets.UTF_8
+                            Charset.forName("MS949")
                         )
                     );
 
@@ -77,20 +81,15 @@ public class ChatConsoleClient {
                 while (true) {
                     String input = console.readLine();
 
-                    // TODO 3:
-                    // input == null 이면 종료
-                    // input이 "/quit"이면 "QUIT\n" 전송 후 종료
                     if (input == null) {
                         break;                        
                     }
 
-                    if (input == "/quit") {
+                    if (input.equals("/quit")) {
                         output.write("QUIT\n".getBytes(StandardCharsets.UTF_8));
+                        break;
                     }
 
-                    // TODO 4:
-                    // 빈 메시지는 건너뛰기
-                    // 일반 메시지는 "MSG <본문>\n" 전송
                     if (input.isEmpty()) {
                         continue;
                     }

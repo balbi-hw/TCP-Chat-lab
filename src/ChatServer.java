@@ -1,10 +1,8 @@
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,31 +102,27 @@ public class ChatServer {
                         
                         while (true) {
 
-                            // readLine() 으로 문자열 읽기
                             String val = reader.readLine();
 
                             if (val == null) {
                                 break;
                             }
 
-                            // "QUIT" 이면 반복 종료
                             if (val.equals("QUIT")) {
                                 System.out.println("연결을 종료합니다.");
                                 break;
                             }
 
-                            // "MSG " 로 시작한다면 메시지 본문만 추출하여 출력
                             if (val.startsWith("MSG ")) {
                                 String line = val.substring(4);
                                 if (!line.isEmpty()) {
                                     broadcast(session, line);
                                     continue;
-                                };
+                                }
 
                                 continue;
                             }
 
-                            // 그 외의 명령이라면 "알 수 없는 명령 출력"
                             System.out.println("알 수 없는 명령");
                         }
                         
