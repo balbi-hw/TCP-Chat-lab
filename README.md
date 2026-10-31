@@ -67,3 +67,19 @@ Reader 가 메시지를 수신하여 읽고 소켓이 연결되어 있는 각 �
 ## 장애 처리
 
 각 세션 별 `Queue` 의 최대 크기를 10으로 잡아 이 이상 메시지가 들어오게 되면 연결을 종료하도록 설계하였습니다. 또한 의도적인 종료와 장애로 인한 종료가 두 번 처리되지 않도록 멱등성을 고려하였습니다.
+
+## Session 상태 머신
+
+```
+CREATED → ACTIVE → CLOSING → CLOSED
+     └───────────────▲
+```
+ACTIVE 상태에서만 메시지를 수락합니다. 종료는 멱등적으로 시작되며, close()에서 Socket 종료와 Writer 중단을 요청한 후 등록된 종료 콜백을 실행하여 서버 접속 목록에서 제거합니다. CLOSED는 정리 절차 수행을 뜻하며 Writer 스레드 종료 완료(join)까지 보장하지는 않습니다.
+
+## 느린 수신자 정책
+
+`enqueue()`가 Queue 포화를 반환하면 서버는 해당 Session에 즉시 종료를 요청합니다. 이를 통해 한 클라이언트의 느린 전송이 다른 클라이언트의 Broadcast를 장시간 막지 않도록 합니다. Queue에 수락되었지만 아직 전송되지 않은 메시지는 종료 과정에서 유실될 수 있습니다.
+
+## 학습한 핵심 개념
+
+Blocking I/O, TCP 바이트 스트림과 애플리케이션 메시지 프레이밍, EOF, Producer/Consumer, BlockingQueue, Backpressure, FIFO와 전체 Broadcast 순서의 차이, synchronized의 상호 배제와 가시성, 상태 머신, 안전한 종료, 실패 격리, Callback을 통한 의존성 분리.
